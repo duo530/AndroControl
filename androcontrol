@@ -1,0 +1,33 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+echo "AndroControl - Control the devices in your network. (by duo530)" | lolcat
+
+read -p "Enter the router IP address to scan (e.g., 192.168.1.1): " router_ip
+
+devices=$(nmap -p 5555 $router_ip/24 -oG - | grep "/open" | awk '{print $2}')
+
+for device in $devices; do
+    read -p "Control device $device? (y/n): " choice
+    if [ "$choice" = "y" ]; then
+        echo "Connecting to device $device..."
+        adb connect $device
+        echo "Uptime:"
+        adb shell uptime
+        echo "Battery:"
+        adb shell 'dumpsys battery | grep level'
+        echo "First 20 files:"
+        adb shell "ls /sdcard" | head -n 20
+        echo "Obtaining device shell..."
+        if [ $? -eq 0 ]; then
+            while true; do
+                read -p "$ " command
+                if [[ "$command" = "exit" ]]; then
+                adb disconnect
+                fi
+                adb shell "$command"
+            done
+        else
+            echo "Failed to connect to $device. Skipping..."
+        fi
+     fi
+done
